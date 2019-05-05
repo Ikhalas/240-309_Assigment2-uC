@@ -2,11 +2,12 @@
 #include <util/delay.h>
 #include <avr/interrupt.h>
 #include <avr/sleep.h>
-#define num_led 12
+#include <avr/wdt.h>
+#define F_CPU 16000000UL
 #define on 1
 #define SLEEP_POWER_DOWN 2
-#define F_CPU 16000000UL
-
+#define wdt_timeout_250ms  4 
+#define wdt_timeout_2sec   7
 signed int i=0;
 unsigned int j,inc,dec;
 
@@ -16,6 +17,21 @@ void SLEEP_DISABLE (void){
 
 void SLEEP_INITIALIZE (uint8_t m){
 	SMCR = (m << 1)|0x01;
+}
+
+void WDT_enable(uint8_t timeout_v){
+	unsigned char bakSREG;
+	uint8_t prescaler;
+	prescaler = timeout_v & 0x07;
+	prescaler |= (1<<WDE);	
+	if(timeout_v > 7)
+		prescaler |= (1<<WDP3);
+	bakSREG = SREG;
+	cli();
+	wdt_reset();
+	WDTCSR |= ((1<<WDCE)|(1<<WDE));
+	WDTCSR = prescaler;
+	SREG = bakSREG;
 }
 
 void display_each_led(int led_num, char status_on){
@@ -43,12 +59,13 @@ ISR (INT1_vect){
 	_delay_ms(15);
 	tmp = PIND>>3;
 	tmp &= 0x01;
+	WDT_enable(wdt_timeout_250ms);
 	if(tmp==0){
 		for(j=0;j<30;j++){
 			tmp = PIND>>3;
 			tmp &= 0x01;
-			_delay_ms(1000);
-		
+			_delay_ms(100);
+			wdt_reset();
 			if(tmp==0){
 				state++;
 				if(inc==1){
@@ -66,7 +83,7 @@ ISR (INT1_vect){
 			else{
 				state=0;	
 				i++;
-				if(i>=num_led) 
+				if(i>=12) 
 					i=0;
 				break;
 			}
@@ -87,11 +104,13 @@ ISR(INT0_vect){
 	_delay_ms(15);
 	tmp = PIND>>2;
 	tmp &= 0x01;
+	WDT_enable(wdt_timeout_250ms);
 	if(tmp==0){
 		for(j=0;j<30;j++){
 			tmp = PIND>>2;
 			tmp &= 0x01;
-			_delay_ms(1000);
+			_delay_ms(100);
+			wdt_reset();
 		
 			if(tmp==0){
 				state++;
@@ -133,6 +152,7 @@ int main(void)
 	EICRA = 0b1010;
 	EIMSK = 0b0011;
 	display_each_led(i,on);
+	WDT_enable(wdt_timeout_2sec);
 	sei();
     while(1){
 			display_each_led(i,on);
@@ -143,8 +163,9 @@ int main(void)
 				while(inc){
 					display_each_led(i,on);
 					 i++;				
-					_delay_ms(20000);			
-					if(i>=num_led)
+					_delay_ms(1000);
+					wdt_reset();			
+					if(i>=12)
 						 i=0;		
 				}
 			}
@@ -152,7 +173,8 @@ int main(void)
 				while(dec){
 					display_each_led(i,on);
 					 i--;				
-					_delay_ms(20000);
+					_delay_ms(1000);
+					wdt_reset();
 					if(i<0) 
 						i=11;	
 				}
