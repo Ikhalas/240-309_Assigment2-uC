@@ -5,8 +5,9 @@
 #include <avr/wdt.h>
 #define F_CPU 16000000UL
 #define on 1
-#define SLEEP_POWER_DOWN 0
-#define wdt_timeout_250ms  4 
+#define SLEEP_POWER_DOWN 2
+#define wdt_timeout_250ms 4 
+#define wdt_timeout_2sec 7 
 signed int i=0;
 unsigned int j,inc,dec;
 
@@ -162,24 +163,28 @@ int main(void)
 			sleep_cpu();
 			SLEEP_DISABLE();
 			if(inc==1){
+				WDT_enable(wdt_timeout_2sec);
 				while(inc){
-					wdt_disable();
 					display_each_led(i,on);
 					 i++;				
-					_delay_ms(1000);			
+					_delay_ms(1000);
+					wdt_reset();			
 					if(i>=12)
 						 i=0;		
 				}
+				wdt_disable();
 			}
 			if(dec==1){
-				wdt_disable();
+				WDT_enable(wdt_timeout_2sec);
 				while(dec){
 					display_each_led(i,on);
 					 i--;				
 					_delay_ms(1000);
+					wdt_reset();
 					if(i<0) 
 						i=11;	
 				}
+				wdt_disable();
 			}
 			wdt_disable();
 	}		
