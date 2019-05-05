@@ -1,11 +1,22 @@
 #include <avr/io.h>
 #include <util/delay.h>
 #include <avr/interrupt.h>
+#include <avr/sleep.h>
 #define num_led 12
 #define on 1
-#define F_CPU 1000000UL
+#define SLEEP_POWER_DOWN 2
+#define F_CPU 16000000UL
+
 signed int i=0;
 unsigned int j,inc,dec;
+
+void SLEEP_DISABLE (void){
+	SMCR &= 0xFE;
+}
+
+void SLEEP_INITIALIZE (uint8_t m){
+	SMCR = (m << 1)|0x01;
+}
 
 void display_each_led(int led_num, char status_on){
 	DDRB &= 0b11110000;
@@ -125,7 +136,9 @@ int main(void)
 	sei();
     while(1){
 			display_each_led(i,on);
-			_delay_ms(100);
+			SLEEP_INITIALIZE(SLEEP_POWER_DOWN);
+			sleep_cpu();
+			SLEEP_DISABLE();
 			if(inc==1){
 				while(inc){
 					display_each_led(i,on);
