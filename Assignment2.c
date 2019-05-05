@@ -5,9 +5,8 @@
 #include <avr/wdt.h>
 #define F_CPU 16000000UL
 #define on 1
-#define SLEEP_POWER_DOWN 2
+#define SLEEP_POWER_DOWN 0
 #define wdt_timeout_250ms  4 
-#define wdt_timeout_2sec   7
 signed int i=0;
 unsigned int j,inc,dec;
 
@@ -81,6 +80,7 @@ ISR (INT1_vect){
 										 			
 			}	
 			else{
+				
 				state=0;	
 				i++;
 				if(i>=12) 
@@ -128,6 +128,7 @@ ISR(INT0_vect){
 			}
 			
 			else{
+		
 				state=0;	
 				i--;
 				if(i<0) 
@@ -140,7 +141,8 @@ ISR(INT0_vect){
 		if(state>=30)
 			dec=1;
 			
-		state=0;	
+		state=0;
+		
 	}
 	
 	EIFR = (1<<INTF0);
@@ -152,32 +154,33 @@ int main(void)
 	EICRA = 0b1010;
 	EIMSK = 0b0011;
 	display_each_led(i,on);
-	WDT_enable(wdt_timeout_2sec);
 	sei();
     while(1){
+			
 			display_each_led(i,on);
 			SLEEP_INITIALIZE(SLEEP_POWER_DOWN);
 			sleep_cpu();
 			SLEEP_DISABLE();
 			if(inc==1){
 				while(inc){
+					wdt_disable();
 					display_each_led(i,on);
 					 i++;				
-					_delay_ms(1000);
-					wdt_reset();			
+					_delay_ms(1000);			
 					if(i>=12)
 						 i=0;		
 				}
 			}
 			if(dec==1){
+				wdt_disable();
 				while(dec){
 					display_each_led(i,on);
 					 i--;				
 					_delay_ms(1000);
-					wdt_reset();
 					if(i<0) 
 						i=11;	
 				}
 			}
+			wdt_disable();
 	}		
 }
